@@ -1,4 +1,12 @@
+"""
+This file stores all optioanl CLI args of program.
+This file dynamicly changes by main.set_columns_as_cli_args.
+Dont't change this file manually!!!
+"""
+
 args = (
-    (("--dart",), {"help":"dart HELP"}),
-    (("--rust",), {"help":"rust HELP"}),
+    (("--row-id",), {'type':int}),
+    (("--data",), {'type':str}),
+    (("--important",), {}),
+    (("--urgently",), {}),
 )
