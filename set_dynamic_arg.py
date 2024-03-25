@@ -12,7 +12,7 @@ def set_arg(arg: str, options: dict = {}) -> None:
     
     line_to_insert = f"    ((\"--{arg}\",), {options}),\n"
     # line below need for replace 'python_type' with python_type(remove quotes)
-    line_to_insert = re.sub(r":\s?'(\w+)'", r":\1", line_to_insert)
+    line_to_insert = re.sub(r"'type':\s?'(\w+)'", r"'type':\1", line_to_insert)
 
     if line_to_insert in lines: return
 
