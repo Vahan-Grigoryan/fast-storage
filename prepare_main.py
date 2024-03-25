@@ -18,7 +18,7 @@ def show_columns(tablename: str):
 
     for column in table.c:
         print(
-            f"--{column.name}",
+            f"{column.name}",
             column.type,
             "optional" if column.nullable or column.default or column.primary_key else "required",
             f"default: {column.default if column.default else 'not specified'}",
@@ -31,15 +31,14 @@ def set_columns_as_cli_args():
     for tablename, table in db_operations.Base.metadata.tables.items():
         for column in table.c[1:]:
             # [1:] there used for exclude id column
-            col_options = {}
-            types_assocations = {
-                "INTEGER": 'int',
-                "VARCHAR": 'str',
+            arg_options = {
+                "metavar": "",
+                "help": f"{tablename} table column."
             }
-            if str(column.type) != "BOOLEAN":
-                col_options['type'] = types_assocations[str(column.type)]
+            if str(column.type) == "INTEGER":
+                arg_options['type'] = 'int'
 
-            set_dynamic_arg.set_arg(column.name, col_options)
+            set_dynamic_arg.set_arg(f"{tablename}-{column.name}", arg_options)
 
 
 def validate_pointed_columns(args, tablename: str, for_other_operations: bool = False):
@@ -60,7 +59,7 @@ def validate_pointed_columns(args, tablename: str, for_other_operations: bool = 
 
     for column in table.c[1:]:
         # [1:] there used for exclude id column
-        column_value = getattr(args, column.name)
+        column_value = getattr(args, f"{tablename}_{column.name}")
 
         if for_other_operations and column_value:
             if str(column.type) == "BOOLEAN":
@@ -71,6 +70,15 @@ def validate_pointed_columns(args, tablename: str, for_other_operations: bool = 
             if not column_value and not (column.nullable or column.default):
                 raise ValueError(f"Provide correct columns.\nUse \"show-columns {tablename}\" for list available options")
             elif column_value:
-                columns_with_values[column.name] = column_value
+                if str(column.type) == "BOOLEAN":
+                    if column_value == "False":
+                        column_value = False
+                    elif column_value == "True":
+                        column_value = True
+                    else:
+                        raise ValueError(f"Available variants is True|False")
+                    columns_with_values[column.name] = column_value
+                else:
+                    columns_with_values[column.name] = column_value
 
     return columns_with_values
