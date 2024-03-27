@@ -1,4 +1,4 @@
-import set_dynamic_arg
+import set_dynamic_arg, sys
 from db import operations as db_operations
 
 
@@ -23,6 +23,25 @@ def show_columns(tablename: str):
             "optional" if column.nullable or column.default or column.primary_key else "required",
             f"default: {column.default if column.default else 'not specified'}",
         )
+
+    print(f"""\
+    \nHint: use --<tablename>-<column_name> for point column value(except id column), for example: \
+    \n--{tablename}-name name1 \
+    \n--{tablename}-data data1 \
+    \n--id 7
+    """)
+
+def pretty_show(rows):
+    """Pretty show received rows"""
+    
+    if not len(rows): print("Nothing to show (◕‿◕)")
+    for row in rows:
+        print("---------------")
+        for column_name, column_value in row._mapping.items():
+            if type(column_value) == str:
+                print(f"{column_name}:\n\n{column_value}\n\n")
+            else:
+                print(f"{column_name}: {column_value}")
 
 
 def set_columns_as_cli_args():
@@ -52,14 +71,25 @@ def validate_pointed_columns(args, tablename: str, for_other_operations: bool = 
         Assuming user try select(or update row) row/rows with/without any filters,
         check if any optional param provided,
         return dict with corresponding params and them values
+    Also note that option names will be converted 
+    to valid table column names with corresponding values, examples:
+        "--tmpdata-name column_value" will be converted to "{'name': column_value}" 
     """
+    from fs import args_parser
 
     table = db_operations.Base.metadata.tables.get(tablename)
     columns_with_values = {}
 
-    for column in table.c[1:]:
-        # [1:] there used for exclude id column
-        column_value = getattr(args, f"{tablename}_{column.name}")
+    for column in table.c:
+        if column.name == "id" and getattr(args, "id"):
+            column_value = getattr(args, "id")
+        elif column.name == "id" and not getattr(args, "id"):
+            continue
+        else:
+            column_value = getattr(args, f"{tablename}_{column.name}")
+
+        if column_value == "stdin":
+            column_value = "".join(sys.stdin.readlines())
 
         if for_other_operations and column_value:
             if str(column.type) == "BOOLEAN":
@@ -67,8 +97,10 @@ def validate_pointed_columns(args, tablename: str, for_other_operations: bool = 
             else:
                 columns_with_values[column.name] = column_value
         elif not for_other_operations:
+            if column.name == "id":
+                args_parser.error("You can't set id column, row not created")
             if not column_value and not (column.nullable or column.default):
-                raise ValueError(f"Provide correct columns.\nUse \"show-columns {tablename}\" for list available options")
+                args_parser.error(f"Provide correct columns.\nUse \"show-columns {tablename}\" for list available options")
             elif column_value:
                 if str(column.type) == "BOOLEAN":
                     if column_value == "False":
