@@ -1,4 +1,4 @@
-import argparse, prepare_main, textwrap, argument_actions
+import argparse, prepare_fs, textwrap, argument_actions
 from db import operations as db_operations
 
 
@@ -73,29 +73,29 @@ args_parser.add_argument(
     '''
 )
 
-prepare_main.set_columns_as_cli_args()
+prepare_fs.set_columns_as_cli_args()
 
-prepare_main.add_available_args(args_parser)
+prepare_fs.add_available_args(args_parser)
 args = args_parser.parse_args()
 
 
 # Do corresponding thing based on CLI args
 if __name__ == "__main__":
     if args.operation == "show-columns":
-        prepare_main.show_columns(args.tablename_or_raw_query)
+        prepare_fs.show_columns(args.tablename_or_raw_query)
     
     elif args.operation == "read":
-        columns_to_filter = prepare_main.validate_pointed_columns(args, args.tablename_or_raw_query, for_other_operations=True)
+        columns_to_filter = prepare_fs.validate_pointed_columns(args, args.tablename_or_raw_query, for_other_operations=True)
         columns_to_filter["columns"] = args.columns
         rows = db_operations.select_from_table(args.tablename_or_raw_query, columns_to_filter)
-        prepare_main.pretty_show(rows)
+        prepare_fs.pretty_show(rows)
     
     elif args.operation == "create":
-        required_columns = prepare_main.validate_pointed_columns(args, args.tablename_or_raw_query)
+        required_columns = prepare_fs.validate_pointed_columns(args, args.tablename_or_raw_query)
         db_operations.insert_row(args.tablename_or_raw_query, required_columns)
     
     elif args.operation == "update":
-        columns_to_update = prepare_main.validate_pointed_columns(args, args.tablename_or_raw_query, for_other_operations=True)
+        columns_to_update = prepare_fs.validate_pointed_columns(args, args.tablename_or_raw_query, for_other_operations=True)
         db_operations.update_row(args.id, args.tablename_or_raw_query, columns_to_update)
     
     elif args.operation == "delete":
